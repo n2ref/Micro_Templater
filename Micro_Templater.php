@@ -1,6 +1,7 @@
 <?php
 
 
+
 /**
  * Class Micro_Templater
  * @see https://github.com/shinji00/Micro_Templater
@@ -14,21 +15,21 @@ class Micro_Templater {
     private $_p       = array();
     private $html     = '';
 
-    function __construct($tpl_file = '') {
-		if ($tpl_file) $this->loadTemplate($tpl_file);
-	}
+    public function __construct($tpl_file = '') {
+        if ($tpl_file) $this->loadTemplate($tpl_file);
+    }
 
-	public function __isset($block) {
-		return isset($this->_p[$block]);
-	}
+    public function __isset($block) {
+        return isset($this->_p[$block]);
+    }
 
 
-	/**
-	 * Nested blocks will be stored inside $_p
-	 * @param string $field
-	 * @return Micro_Templater|null
-	 */
-	public function __get($field) {
+    /**
+     * Nested blocks will be stored inside $_p
+     * @param string $field
+     * @return Micro_Templater|null
+     */
+    public function __get($field) {
         if (array_key_exists($field, $this->_p)) {
             $v = $this->_p[$field];
         } else {
@@ -37,7 +38,7 @@ class Micro_Templater {
             $v = $this->_p[$field] = $temp;
         }
         return $v;
-	}
+    }
 
 
     /**
@@ -60,6 +61,27 @@ class Micro_Templater {
     public function setTemplate($html) {
         $this->html = $html;
         $this->clear();
+    }
+
+
+    /**
+     * Touched block
+     * @param string $block
+     */
+    public function touchBlock($block) {
+        $this->blocks[$block]['TOUCHED'] = true;
+    }
+
+
+    /**
+     * Get html block
+     * @param string $block
+     * @return string
+     */
+    public function getBlock($block) {
+        $matched = array();
+        preg_match("~<\!--\s*BEGIN\s+{$block}\s*-->(.+)<\!--\s*END\s+{$block}\s*-->~s", $this->html, $matched);
+        return ! empty($matched[1]) ? $matched[1] : '';
     }
 
 
@@ -93,21 +115,35 @@ class Micro_Templater {
     }
 
 
-	/**
-     * Touched block
-	 * @param string $block
-	 */
-	public function touchBlock($block) {
-		$this->blocks[$block]['TOUCHED'] = true;
-	}
+    /**
+     * Fill SELECT items on page
+     * @param string $id
+     * @param array $options
+     * @param string|array $selected
+     */
+    public function fillDropDown($id, array $options, $selected = '') {
+        $html = "";
+        foreach ($options as $value => $title) {
+            $sel = (is_array($selected) && in_array($value, $selected)) || $value == $selected
+                ? "selected=\"selected\" "
+                : '';
+            $html .= "<option {$sel}value=\"{$value}\">{$title}</option>";
+        }
+        if ($html) {
+            $id = preg_quote($id);
+            $reg = "~(<select.*?id\s*=\s*[\"']{$id}[\"'][^>]*>).*?(</select>)~si";
+            $this->html = preg_replace($reg, "$1[[$id]]$2", $this->html);
+            $this->assign("[[$id]]", $html, true);
+        }
+    }
 
 
-	/**
-	 * The final render
-	 * @return string
-	 */
-	public function parse() {
-		$html = $this->html;
+    /**
+     * The final render
+     * @return string
+     */
+    public function parse() {
+        $html = $this->html;
 
         if (strpos($html, 'BEGIN')) {
             $matches = array();
@@ -147,56 +183,21 @@ class Micro_Templater {
         $assigned = str_replace(array_keys($this->vars), $this->vars, $html);
         $html     = $loop . $assigned;
 
-		$this->loopHTML = array();
+        $this->loopHTML = array();
 
-		//apply plugins
-		foreach ($this->plugins as $plugin => $process) {
+        //apply plugins
+        foreach ($this->plugins as $plugin => $process) {
             $matches = array();
-			preg_match_all("~\[{$plugin}:([^\]]+)\]~s", $html, $matches);
-			foreach ($matches[1] as $k => $value) {
-				$tmp = explode('|', $value);
+            preg_match_all("~\[{$plugin}:([^\]]+)\]~s", $html, $matches);
+            foreach ($matches[1] as $k => $value) {
+                $tmp = explode('|', $value);
                 $matches[1][$k] = call_user_func_array(array($process, $plugin), $tmp);
-			}
-			$html = str_replace($matches[0], $matches[1], $html);
-		}
-
-		return $html;
-	}
-
-
-	/**
-	 * Fill SELECT items on page
-	 * @param string $id
-	 * @param array $options
-	 * @param string|array $selected
-	 */
-	public function fillDropDown($id, array $options, $selected = '') {
-		$html = "";
-		foreach ($options as $value => $title) {
-			$sel = (is_array($selected) && in_array($value, $selected)) || $value == $selected
-                ? "selected=\"selected\" "
-                : '';
-			$html .= "<option {$sel}value=\"{$value}\">{$title}</option>";
-		}
-        if ($html) {
-            $id = preg_quote($id);
-            $reg = "~(<select.*?id\s*=\s*[\"']{$id}[\"'][^>]*>).*?(</select>)~si";
-            $this->html = preg_replace($reg, "$1[[$id]]$2", $this->html);
-            $this->assign("[[$id]]", $html, true);
+            }
+            $html = str_replace($matches[0], $matches[1], $html);
         }
-	}
 
-
-    /**
-     * Get html block
-     * @param string $block
-     * @return string
-     */
-	public function getBlock($block) {
-		$matched = array();
-		preg_match("~<\!--\s*BEGIN\s+{$block}\s*-->(.+)<\!--\s*END\s+{$block}\s*-->~s", $this->html, $matched);
-        return ! empty($matched[1]) ? $matched[1] : '';
-	}
+        return $html;
+    }
 
 
     /**
