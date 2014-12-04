@@ -1,19 +1,18 @@
 <?php
 
-
-
 /**
  * Class Micro_Templater
  * @see https://github.com/shinji00/Micro_Templater
  */
 class Micro_Templater {
 
-    private $loopHTML = array();
-    private $plugins  = array();
-    private $blocks   = array();
-    private $vars     = array();
-    private $_p       = array();
-    private $html     = '';
+    protected $plugins  = array();
+    protected $blocks   = array();
+    protected $vars     = array();
+    protected $_p       = array();
+    protected $reassign = false;
+    protected $loop     = '';
+    protected $html     = '';
 
     public function __construct($tpl_file = '') {
         if ($tpl_file) $this->loadTemplate($tpl_file);
@@ -30,6 +29,10 @@ class Micro_Templater {
      * @return Micro_Templater|null
      */
     public function __get($field) {
+
+        if ($this->reassign) $this->startReassign();
+        $this->touchBlock($field);
+
         if (array_key_exists($field, $this->_p)) {
             $v = $this->_p[$field];
         } else {
@@ -65,27 +68,6 @@ class Micro_Templater {
 
 
     /**
-     * Touched block
-     * @param string $block
-     */
-    public function touchBlock($block) {
-        $this->blocks[$block]['TOUCHED'] = true;
-    }
-
-
-    /**
-     * Get html block
-     * @param string $block
-     * @return string
-     */
-    public function getBlock($block) {
-        $matched = array();
-        preg_match("~<\!--\s*BEGIN\s+{$block}\s*-->(.+)<\!--\s*END\s+{$block}\s*-->~s", $this->html, $matched);
-        return ! empty($matched[1]) ? $matched[1] : '';
-    }
-
-
-    /**
      * Add plugin
      * @param string $title
      * @param mixed $obj
@@ -101,6 +83,7 @@ class Micro_Templater {
      * @param string $value
      */
     public function assign($var, $value = '') {
+        if ($this->reassign) $this->startReassign();
         $this->vars[$var] = $value;
     }
 
@@ -109,32 +92,26 @@ class Micro_Templater {
      * Reset the current instance's variables and make them able to assign again
      */
     public function reassign() {
-        $this->loopHTML[] = $this->parse();
-        $this->clear();
-        $this->setTemplate($this->html);
+        $this->reassign = true;
     }
 
 
     /**
-     * Fill SELECT items on page
-     * @param string $id
-     * @param array $options
-     * @param string|array $selected
+     * Start reassign
      */
-    public function fillDropDown($id, array $options, $selected = '') {
-        $html = "";
-        foreach ($options as $value => $title) {
-            $sel = (is_array($selected) && in_array($value, $selected)) || $value == $selected
-                ? "selected=\"selected\" "
-                : '';
-            $html .= "<option {$sel}value=\"{$value}\">{$title}</option>";
-        }
-        if ($html) {
-            $id = preg_quote($id);
-            $reg = "~(<select.*?id\s*=\s*[\"']{$id}[\"'][^>]*>).*?(</select>)~si";
-            $this->html = preg_replace($reg, "$1[[$id]]$2", $this->html);
-            $this->assign("[[$id]]", $html, true);
-        }
+    protected function startReassign() {
+        $this->loop = $this->parse();
+        $this->clear();
+        $this->reassign = false;
+    }
+
+
+    /**
+     * Touched block
+     * @param string $block
+     */
+    public function touchBlock($block) {
+        $this->blocks[$block]['TOUCHED'] = true;
     }
 
 
@@ -159,14 +136,15 @@ class Micro_Templater {
             foreach ($this->blocks as $block => $data) {
                 $sub_tpl = array_key_exists($block, $this->_p) ? $this->_p[$block] : null;
                 $html    = preg_replace_callback(
-                    "~(.*)<\!--\s*BEGIN\s+{$block}\s*-->(.+)<\!--\s*END\s+{$block}\s*-->(.*)~s",
-                    function($matches) use($block, $data, $sub_tpl) {
-                        if ($sub_tpl) {
-                            $parsed = $sub_tpl->parse();
-                            $html   = $matches[1] . $parsed . $matches[3];
-
-                        } elseif (isset($data['TOUCHED']) && $data['TOUCHED']) {
-                            $html = $matches[1] . $matches[2] . $matches[3];
+                    "~(.*?)<\!--\s*BEGIN\s+{$block}\s*-->(.+)<\!--\s*END\s+{$block}\s*-->(.*)~s",
+                    function($matches) use($data, $sub_tpl) {
+                        if (isset($data['TOUCHED']) && $data['TOUCHED']) {
+                            if ($sub_tpl) {
+                                $parsed = $sub_tpl->parse();
+                                $html = $matches[1] . $parsed . $matches[3];
+                            } else {
+                                $html = $matches[1] . $matches[2] . $matches[3];
+                            }
 
                         } else {
                             $html = $matches[1] . $matches[3];
@@ -179,11 +157,10 @@ class Micro_Templater {
             }
         }
 
-        $loop     = implode('', $this->loopHTML);
-        $assigned = str_replace(array_keys($this->vars), $this->vars, $html);
-        $html     = $loop . $assigned;
 
-        $this->loopHTML = array();
+        $assigned   = str_replace(array_keys($this->vars), $this->vars, $html);
+        $html       = $this->loop . $assigned;
+        $this->loop = '';
 
         //apply plugins
         foreach ($this->plugins as $plugin => $process) {
@@ -197,6 +174,44 @@ class Micro_Templater {
         }
 
         return $html;
+    }
+
+
+    /**
+     * Fill SELECT items on page
+     * @param string $id
+     * @param array $options
+     * @param string|array $selected
+     */
+    public function fillDropDown($id, array $options, $selected = '') {
+
+        if ($this->reassign) $this->startReassign();
+
+        $html = "";
+        foreach ($options as $value => $title) {
+            $sel = (is_array($selected) && in_array($value, $selected)) || $value == $selected
+                ? "selected=\"selected\" "
+                : '';
+            $html .= "<option {$sel}value=\"{$value}\">{$title}</option>";
+        }
+        if ($html) {
+            $id = preg_quote($id);
+            $reg = "~(<select.*?id\s*=\s*[\"']{$id}[\"'][^>]*>).*?(</select>)~si";
+            $this->html = preg_replace($reg, "$1[[$id]]$2", $this->html);
+            $this->assign("[[$id]]", $html, true);
+        }
+    }
+
+
+    /**
+     * Get html block
+     * @param string $block
+     * @return string
+     */
+    public function getBlock($block) {
+        $matched = array();
+        preg_match("~<\!--\s*BEGIN\s+{$block}\s*-->(.+)<\!--\s*END\s+{$block}\s*-->~s", $this->html, $matched);
+        return ! empty($matched[1]) ? $matched[1] : '';
     }
 
 
