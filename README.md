@@ -74,7 +74,7 @@ $html = '
 $tpl = new Micro_Templater();
 $tpl->setTemplate($html);
  
-$tpl->error->assign('[message]', Exemple 2: error message!);
+$tpl->error->assign('[message]', 'Exemple 2: error message!');
  
 echo $tpl->parse();
 ```
@@ -110,7 +110,7 @@ $tpl->setTemplate($html);
 foreach ($menu as $page_name=>$title) {
     $tpl->menu->assign('[URL]',  '?view=' . $page_name);
     $tpl->menu->assign('[TITLE]', $title);
-    if ($title != end($menu)) $tpl->menu->reassign();
+    $tpl->menu->reassign();
 }
  
 echo $tpl->parse();
