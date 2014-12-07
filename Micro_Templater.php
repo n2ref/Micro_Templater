@@ -140,7 +140,7 @@ class Micro_Templater {
                 $block_end   = "<!-- END {$block} -->";
 
                 $begin_pos = strpos($html, $block_begin);
-                $end_pos   = strpos($html, $block_end);
+                $end_pos   = strrpos($html, $block_end);
 
                 if ($begin_pos !== false && $end_pos !== false) {
                     $after_html  = substr($html, 0, $begin_pos);
@@ -215,7 +215,7 @@ class Micro_Templater {
      */
     public function getBlock($block) {
         $begin_pos = strpos($this->html, "<!-- BEGIN {$block} -->")  + strlen("<!-- BEGIN {$block} -->");
-        $end_pos   = strpos($this->html, "<!-- END {$block} -->");
+        $end_pos   = strrpos($this->html, "<!-- END {$block} -->");
 
         $block_html = substr($this->html, $begin_pos, $end_pos - $begin_pos);
         return $block_html !== false && $block_html !== '' ? $block_html : '';
