@@ -124,7 +124,7 @@ class Micro_Templater {
 
         if (strpos($html, 'BEGIN')) {
             $matches = array();
-            preg_match_all("~<\!--\sBEGIN\s([a-zA-Z0-9_]+?)\s-->~s", $html, $matches);
+            preg_match_all("~<\!--\s*BEGIN\s+([a-zA-Z0-9_]+?)\s*-->~s", $html, $matches);
             if (isset($matches[1]) && count($matches[1])) {
                 foreach ($matches[1] as $block) {
                     if ( ! isset($this->blocks[$block])) {
@@ -135,30 +135,25 @@ class Micro_Templater {
 
             foreach ($this->blocks as $block => $data) {
                 $sub_tpl = array_key_exists($block, $this->_p) ? $this->_p[$block] : null;
+                $html    = preg_replace_callback(
+                    "~(.*?)<\!--\s*BEGIN\s+{$block}\s*-->(.+)<\!--\s*END\s+{$block}\s*-->(.*)~s",
+                    function($matches) use($data, $sub_tpl) {
+                        if (isset($data['TOUCHED']) && $data['TOUCHED']) {
+                            if ($sub_tpl) {
+                                $parsed = $sub_tpl->parse();
+                                $html = $matches[1] . $parsed . $matches[3];
+                            } else {
+                                $html = $matches[1] . $matches[2] . $matches[3];
+                            }
 
-                $block_begin = "<!-- BEGIN {$block} -->";
-                $block_end   = "<!-- END {$block} -->";
-
-                $begin_pos = strpos($html, $block_begin);
-                $end_pos   = strrpos($html, $block_end);
-
-                if ($begin_pos !== false && $end_pos !== false) {
-                    $after_html  = substr($html, 0, $begin_pos);
-                    $inside_html = substr($html, $begin_pos + strlen($block_begin), $end_pos - ($begin_pos + strlen($block_begin)));
-                    $before_html = substr($html, $end_pos + strlen($block_end));
-
-                    if (isset($data['TOUCHED']) && $data['TOUCHED']) {
-                        if ($sub_tpl) {
-                            $parsed = $sub_tpl->parse();
-                            $html = $after_html . $parsed . $before_html;
                         } else {
-                            $html = $after_html . $inside_html . $before_html;
+                            $html = $matches[1] . $matches[3];
                         }
 
-                    } else {
-                        $html = $after_html . $before_html;
-                    }
-                }
+                        return $html;
+                    },
+                    $html
+                );
             }
         }
 
@@ -214,11 +209,9 @@ class Micro_Templater {
      * @return string
      */
     public function getBlock($block) {
-        $begin_pos = strpos($this->html, "<!-- BEGIN {$block} -->")  + strlen("<!-- BEGIN {$block} -->");
-        $end_pos   = strrpos($this->html, "<!-- END {$block} -->");
-
-        $block_html = substr($this->html, $begin_pos, $end_pos - $begin_pos);
-        return $block_html !== false && $block_html !== '' ? $block_html : '';
+        $matched = array();
+        preg_match("~<\!--\s*BEGIN\s+{$block}\s*-->(.+)<\!--\s*END\s+{$block}\s*-->~s", $this->html, $matched);
+        return ! empty($matched[1]) ? $matched[1] : '';
     }
 
 
