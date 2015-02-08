@@ -1,4 +1,4 @@
-Micro_Templater
+Micro Templater
 ===============
 
 Simple and strong templater
@@ -24,7 +24,7 @@ $tpl->setTemplate($html);
 $tpl->assign('var1',   'foo');
 $tpl->assign('[var2]', 'bar');
  
-echo $tpl->parse();
+echo $tpl->render();
 ```
 Result will look like:
 
@@ -53,7 +53,7 @@ $tpl->setTemplate($html);
  
 $tpl->touchBlock('error');
  
-echo $tpl->parse();
+echo $tpl->render();
 ```
 Result will look like:
 
@@ -76,7 +76,7 @@ $tpl->setTemplate($html);
  
 $tpl->error->assign('[message]', 'Exemple 2: error message!');
  
-echo $tpl->parse();
+echo $tpl->render();
 ```
 Result will look like:
 
@@ -113,7 +113,7 @@ foreach ($menu as $page_name=>$title) {
     $tpl->menu->reassign();
 }
  
-echo $tpl->parse();
+echo $tpl->render();
 ```
 Result will look like:
 
