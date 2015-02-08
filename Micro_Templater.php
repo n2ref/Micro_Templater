@@ -175,8 +175,9 @@ class Micro_Templater {
 
         if ($this->reassign) $this->startReassign();
 
-        $doc = new DOMDocument();
-        $doc->loadHTML($this->html);
+        $doc  = new DOMDocument();
+        $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
+        $doc->loadXML('<root>' . $html . '</root>');
         $elements = $this->getDOMElements($selector, $doc);
 
         foreach ($elements as $key => $element) {
@@ -207,16 +208,19 @@ class Micro_Templater {
                 }
             }
         }
-        // remove DOCTYPE, tag html and body
-        $doc->removeChild($doc->doctype);
-        $doc->replaceChild($doc->firstChild->firstChild->firstChild, $doc->firstChild);
-        $this->html = $doc->saveHTML();
+
+
+        $xpath    = new DOMXpath($doc);
+        $elements = $xpath->evaluate('descendant-or-self::root');
+        $this->html = $doc->saveXML($elements->item(0));
+        $this->html = substr($this->html, 6, -7);
+        $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/S', '&$1;', $this->html);
     }
 
 
     /**
      * Get html block
-     * @param  string      $block
+     * @param string $block
      * @return string|bool
      */
     public function getBlock($block) {
@@ -248,8 +252,9 @@ class Micro_Templater {
      */
     public function setAttr($selector, $name, $value) {
         if (is_string($selector) && is_string($name) && is_string($value)) {
-            $doc = new DOMDocument();
-            $doc->loadHTML($this->html);
+            $doc  = new DOMDocument();
+            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
+            $doc->loadXML('<root>' . $html . '</root>');
             $elements = $this->getDOMElements($selector, $doc);
 
             foreach ($elements as $key => $element) {
@@ -257,10 +262,12 @@ class Micro_Templater {
                     $element->setAttribute($name, $value);
                 }
             }
-            // remove DOCTYPE, tag html and body
-            $doc->removeChild($doc->doctype);
-            $doc->replaceChild($doc->firstChild->firstChild->firstChild, $doc->firstChild);
-            $this->html = $doc->saveHTML();
+
+            $xpath    = new DOMXpath($doc);
+            $elements = $xpath->evaluate('descendant-or-self::root');
+            $this->html = $doc->saveXML($elements->item(0));
+            $this->html = substr($this->html, 6, -7);
+            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/S', '&$1;', $this->html);
         } else {
             throw new Exception("Wrong type for input parameters 'selector', 'name' or 'value'. Need string");
         }
@@ -278,8 +285,9 @@ class Micro_Templater {
      */
     public function setPrependAttr($selector, $name, $value) {
         if (is_string($selector) && is_string($name) && is_string($value)) {
-            $doc = new DOMDocument();
-            $doc->loadHTML($this->html);
+            $doc  = new DOMDocument();
+            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
+            $doc->loadXML('<root>' . $html . '</root>');
             $elements = $this->getDOMElements($selector, $doc);
 
             foreach ($elements as $key => $element) {
@@ -290,10 +298,12 @@ class Micro_Templater {
                     $element->setAttribute($name, $value);
                 }
             }
-            // remove DOCTYPE, tag html and body
-            $doc->removeChild($doc->doctype);
-            $doc->replaceChild($doc->firstChild->firstChild->firstChild, $doc->firstChild);
-            $this->html = $doc->saveHTML();
+
+            $xpath    = new DOMXpath($doc);
+            $elements = $xpath->evaluate('descendant-or-self::root');
+            $this->html = $doc->saveXML($elements->item(0));
+            $this->html = substr($this->html, 6, -7);
+            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/S', '&$1;', $this->html);
         } else {
             throw new Exception("Wrong type for input parameters 'selector', 'name' or 'value'. Need string");
         }
@@ -311,8 +321,9 @@ class Micro_Templater {
      */
     public function setAppendAttr($selector, $name, $value) {
         if (is_string($selector) && is_string($name) && is_string($value)) {
-            $doc = new DOMDocument();
-            $doc->loadHTML($this->html);
+            $doc  = new DOMDocument();
+            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
+            $doc->loadXML('<root>' . $html . '</root>');
             $elements = $this->getDOMElements($selector, $doc);
 
             foreach ($elements as $key => $element) {
@@ -324,10 +335,12 @@ class Micro_Templater {
                     $element->setAttribute($name, $value);
                 }
             }
-            // remove DOCTYPE, tag html and body
-            $doc->removeChild($doc->doctype);
-            $doc->replaceChild($doc->firstChild->firstChild->firstChild, $doc->firstChild);
-            $this->html = $doc->saveHTML();
+
+            $xpath    = new DOMXpath($doc);
+            $elements = $xpath->evaluate('descendant-or-self::root');
+            $this->html = $doc->saveXML($elements->item(0));
+            $this->html = substr($this->html, 6, -7);
+            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/S', '&$1;', $this->html);
         } else {
             throw new Exception("Wrong type for input parameters 'selector', 'name' or 'value'. Need string");
         }
@@ -344,8 +357,9 @@ class Micro_Templater {
      */
     public function setAttribs($selector, array $attributes) {
         if (is_string($selector) && is_array($attributes)) {
-            $doc = new DOMDocument();
-            $doc->loadHTML($this->html);
+            $doc  = new DOMDocument();
+            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
+            $doc->loadXML('<root>' . $html . '</root>');
             $elements = $this->getDOMElements($selector, $doc);
 
             foreach ($elements as $key => $element) {
@@ -355,10 +369,12 @@ class Micro_Templater {
                     }
                 }
             }
-            // remove DOCTYPE, tag html and body
-            $doc->removeChild($doc->doctype);
-            $doc->replaceChild($doc->firstChild->firstChild->firstChild, $doc->firstChild);
-            $this->html = $doc->saveHTML();
+
+            $xpath    = new DOMXpath($doc);
+            $elements = $xpath->evaluate('descendant-or-self::root');
+            $this->html = $doc->saveXML($elements->item(0));
+            $this->html = substr($this->html, 6, -7);
+            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/S', '&$1;', $this->html);
         } else {
             throw new Exception("Wrong type for input parameters 'selector' or 'attributes'. Need string and array");
         }
@@ -375,8 +391,9 @@ class Micro_Templater {
      */
     public function setPrependAttribs($selector, array $attributes) {
         if (is_string($selector) && is_array($attributes)) {
-            $doc = new DOMDocument();
-            $doc->loadHTML($this->html);
+            $doc  = new DOMDocument();
+            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
+            $doc->loadXML('<root>' . $html . '</root>');
             $elements = $this->getDOMElements($selector, $doc);
 
             foreach ($elements as $key => $element) {
@@ -389,10 +406,12 @@ class Micro_Templater {
                     }
                 }
             }
-            // remove DOCTYPE, tag html and body
-            $doc->removeChild($doc->doctype);
-            $doc->replaceChild($doc->firstChild->firstChild->firstChild, $doc->firstChild);
-            $this->html = $doc->saveHTML();
+
+            $xpath    = new DOMXpath($doc);
+            $elements = $xpath->evaluate('descendant-or-self::root');
+            $this->html = $doc->saveXML($elements->item(0));
+            $this->html = substr($this->html, 6, -7);
+            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/S', '&$1;', $this->html);
         } else {
             throw new Exception("Wrong type for input parameters 'selector' or 'attributes'. Need string and array");
         }
@@ -409,8 +428,9 @@ class Micro_Templater {
      */
     public function setAppendAttribs($selector, array $attributes) {
         if (is_string($selector) && is_array($attributes)) {
-            $doc = new DOMDocument();
-            $doc->loadHTML($this->html);
+            $doc  = new DOMDocument();
+            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
+            $doc->loadXML('<root>' . $html . '</root>');
             $elements = $this->getDOMElements($selector, $doc);
 
             foreach ($elements as $key => $element) {
@@ -424,10 +444,12 @@ class Micro_Templater {
                     }
                 }
             }
-            // remove DOCTYPE, tag html and body
-            $doc->removeChild($doc->doctype);
-            $doc->replaceChild($doc->firstChild->firstChild->firstChild, $doc->firstChild);
-            $this->html = $doc->saveHTML();
+
+            $xpath    = new DOMXpath($doc);
+            $elements = $xpath->evaluate('descendant-or-self::root');
+            $this->html = $doc->saveXML($elements->item(0));
+            $this->html = substr($this->html, 6, -7);
+            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/S', '&$1;', $this->html);
         } else {
             throw new Exception("Wrong type for input parameters 'selector' or 'attributes'. Need string and array");
         }
