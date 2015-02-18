@@ -15,7 +15,7 @@ class Micro_Templater {
 
 
     /**
-     * @param  string     $template_file
+     * @param  string    $template_file
      * @throws Exception
      */
     public function __construct($template_file = '') {
@@ -27,9 +27,14 @@ class Micro_Templater {
      * Isset block
      * @param  string $block
      * @return bool
+     * @throws Exception
      */
     public function __isset($block) {
-        return isset($this->_p[$block]);
+        $this->checkBlockName($block);
+        $begin_pos = strpos($this->html, "<!-- BEGIN {$block} -->");
+        $end_pos   = strrpos($this->html, "<!-- END {$block} -->");
+
+        return $begin_pos !== false && $end_pos !== false && $end_pos >= $begin_pos;
     }
 
 
@@ -37,6 +42,7 @@ class Micro_Templater {
      * Nested blocks will be stored inside $_p
      * @param  string               $block
      * @return Micro_Templater|null
+     * @throws Exception
      */
     public function __get($block) {
 
@@ -55,14 +61,14 @@ class Micro_Templater {
 
     /**
      * Load the HTML file to parse
-     * @param  string     $path
+     * @param  string     $filename
      * @throws Exception
      */
-    public function loadTemplate($path) {
-        if ( ! file_exists($path)) {
-            throw new Exception("File not found '{$path}'");
+    public function loadTemplate($filename) {
+        if ( ! file_exists($filename)) {
+            throw new Exception("File not found '{$filename}'");
         }
-        $this->setTemplate(file_get_contents($path));
+        $this->setTemplate(file_get_contents($filename));
     }
 
 
@@ -71,7 +77,7 @@ class Micro_Templater {
      * @param $html
      */
     public function setTemplate($html) {
-        $this->html = $html;
+        $this->html = preg_replace("~<\!--\s*(BEGIN|END)\s+([a-zA-Z0-9_]+?)\s*-->~s", '<!-- $1 $2 -->', $html);
         $this->clear();
     }
 
@@ -96,21 +102,33 @@ class Micro_Templater {
 
 
     /**
-     * Start reassign
-     */
-    protected function startReassign() {
-        $this->loop = $this->render();
-        $this->clear();
-        $this->reassign = false;
-    }
-
-
-    /**
      * Touched block
      * @param string $block
      */
     public function touchBlock($block) {
+        $this->checkBlockName($block);
         $this->blocks[$block]['TOUCHED'] = true;
+    }
+
+
+    /**
+     * Get html block
+     * @param string $block
+     * @return string|bool
+     * @throws Exception
+     */
+    public function getBlock($block) {
+
+        $this->checkBlockName($block);
+
+        $begin_pos = strpos($this->html, "<!-- BEGIN {$block} -->")  + strlen("<!-- BEGIN {$block} -->");
+        $end_pos   = strrpos($this->html, "<!-- END {$block} -->");
+
+        if ($end_pos >= $begin_pos) {
+            return substr($this->html, $begin_pos, $end_pos - $begin_pos);
+        } else {
+            throw new Exception("Block '{$block}' not found");
+        }
     }
 
 
@@ -123,7 +141,7 @@ class Micro_Templater {
 
         if (strpos($html, 'BEGIN')) {
             $matches = array();
-            preg_match_all("~<\!--\s*BEGIN\s+([a-zA-Z0-9_]+?)\s*-->~s", $html, $matches);
+            preg_match_all("~<\!-- BEGIN ([a-zA-Z0-9_]+?) -->~s", $html, $matches);
             if (isset($matches[1]) && count($matches[1])) {
                 foreach ($matches[1] as $block) {
                     if ( ! isset($this->blocks[$block])) {
@@ -133,26 +151,30 @@ class Micro_Templater {
             }
 
             foreach ($this->blocks as $block => $data) {
-                $sub_tpl = array_key_exists($block, $this->_p) ? $this->_p[$block] : null;
-                $html    = preg_replace_callback(
-                    "~(.*?)<\!--\s*BEGIN\s+{$block}\s*-->(.+)<\!--\s*END\s+{$block}\s*-->(.*)~s",
-                    function($matches) use($data, $sub_tpl) {
-                        if (isset($data['TOUCHED']) && $data['TOUCHED']) {
-                            if ($sub_tpl) {
-                                $render = $sub_tpl->render();
-                                $html   = $matches[1] . $render . $matches[3];
-                            } else {
-                                $html = $matches[1] . $matches[2] . $matches[3];
-                            }
+                $block_begin = "<!-- BEGIN {$block} -->";
+                $block_end   = "<!-- END {$block} -->";
 
+                $begin_pos = strpos($html, $block_begin);
+                $end_pos   = strrpos($html, $block_end);
+
+                if ($begin_pos !== false && $end_pos !== false && $end_pos >= $begin_pos) {
+                    $after_html  = substr($html, 0, $begin_pos);
+                    $inside_html = substr($html, $begin_pos + strlen($block_begin), $end_pos - ($begin_pos + strlen($block_begin)));
+                    $before_html = substr($html, $end_pos + strlen($block_end));
+
+                    if (isset($data['TOUCHED']) && $data['TOUCHED']) {
+                        $block_tpl = array_key_exists($block, $this->_p) ? $this->_p[$block] : null;
+                        if ($block_tpl instanceof Micro_Templater) {
+                            $parsed = $block_tpl->render();
+                            $html = $after_html . $parsed . $before_html;
                         } else {
-                            $html = $matches[1] . $matches[3];
+                            $html = $after_html . $inside_html . $before_html;
                         }
 
-                        return $html;
-                    },
-                    $html
-                );
+                    } else {
+                        $html = $after_html . $before_html;
+                    }
+                }
             }
         }
 
@@ -174,7 +196,6 @@ class Micro_Templater {
     public function fillDropDown($selector, array $options, $selected = '') {
 
         if ($this->reassign) $this->startReassign();
-
         $doc  = new DOMDocument();
         $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
         $doc->loadXML('<root>' . $html . '</root>');
@@ -208,37 +229,11 @@ class Micro_Templater {
                 }
             }
         }
-
-
         $xpath    = new DOMXpath($doc);
         $elements = $xpath->evaluate('descendant-or-self::root');
         $this->html = $doc->saveXML($elements->item(0));
         $this->html = substr($this->html, 6, -7);
         $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/S', '&$1;', $this->html);
-    }
-
-
-    /**
-     * Get html block
-     * @param string $block
-     * @return string|bool
-     */
-    public function getBlock($block) {
-        $matched = array();
-        preg_match("~<\!--\s*BEGIN\s+{$block}\s*-->(.+)<\!--\s*END\s+{$block}\s*-->~s", $this->html, $matched);
-        return ! empty($matched[1]) ? $matched[1] : false;
-    }
-
-
-    /**
-     * Clear vars & blocks
-     */
-    private function clear() {
-        $this->blocks = array();
-        $this->vars   = array();
-        foreach ($this->_p as $obj => $data) {
-            $this->_p[$obj]->clear();
-        }
     }
 
 
@@ -355,7 +350,7 @@ class Micro_Templater {
      * @throws Exception
      * @return self
      */
-    public function setAttribs($selector, array $attributes) {
+    public function setAttributes($selector, array $attributes) {
         if (is_string($selector) && is_array($attributes)) {
             $doc  = new DOMDocument();
             $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
@@ -389,7 +384,7 @@ class Micro_Templater {
      * @throws Exception
      * @return self
      */
-    public function setPrependAttribs($selector, array $attributes) {
+    public function setPrependAttributes($selector, array $attributes) {
         if (is_string($selector) && is_array($attributes)) {
             $doc  = new DOMDocument();
             $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
@@ -426,13 +421,12 @@ class Micro_Templater {
      * @throws Exception
      * @return self
      */
-    public function setAppendAttribs($selector, array $attributes) {
+    public function setAppendAttributes($selector, array $attributes) {
         if (is_string($selector) && is_array($attributes)) {
             $doc  = new DOMDocument();
             $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/S', '=[$1];', $this->html);
             $doc->loadXML('<root>' . $html . '</root>');
             $elements = $this->getDOMElements($selector, $doc);
-
             foreach ($elements as $key => $element) {
                 if ($element instanceof DOMElement) {
                     foreach ($attributes as $name => $value) {
@@ -444,7 +438,6 @@ class Micro_Templater {
                     }
                 }
             }
-
             $xpath    = new DOMXpath($doc);
             $elements = $xpath->evaluate('descendant-or-self::root');
             $this->html = $doc->saveXML($elements->item(0));
@@ -464,10 +457,8 @@ class Micro_Templater {
      * @return array
      */
     protected function getDOMElements($selector, DOMDocument $doc) {
-
         $selector  = preg_replace('/\s*([>~+,])\s*/', '$1', $selector);
         $selectors = preg_split("/\s+(?![^\[]+\])/", $selector);
-
         foreach ($selectors as $key => $selector) {
             // ,
             $selectors[$key] = preg_replace('/\s*,\s*/', '|descendant-or-self::', $selector);
@@ -514,10 +505,8 @@ class Micro_Templater {
         }
         $selector = implode('/descendant::', $selectors);
         $selector = 'descendant-or-self::' . $selector;
-
         $xpath    = new DOMXpath($doc);
         $elements = $xpath->evaluate($selector);
-
         $array = array();
         if ($elements instanceof DOMNodeList && $elements->length) {
             for ($i = 0, $length = $elements->length; $i < $length; ++$i) {
@@ -527,5 +516,51 @@ class Micro_Templater {
             }
         }
         return $array;
+    }
+
+
+    /**
+     * Clear vars & blocks
+     */
+    protected function clear() {
+        $this->blocks = array();
+        $this->vars   = array();
+        foreach ($this->_p as $obj) {
+            if ($obj instanceof Micro_Templater) {
+                $obj->clear();
+            }
+        }
+    }
+
+
+    /**
+     * Start reassign
+     */
+    protected function startReassign() {
+        $this->loop = $this->render();
+        $this->clear();
+        $this->reassign = false;
+    }
+
+
+    /**
+     * Check block name
+     * @param $block
+     * @return void
+     * @throws Exception
+     */
+    protected function checkBlockName($block) {
+
+        if ($block === '') {
+            throw new Exception("Block name '{$block}' must be a non-empty string");
+        }
+
+        if (preg_match('~^\d~', $block[0])) {
+            throw new Exception("Block name '{$block}' must not start with a number");
+        }
+
+        if (preg_match('~[^0-9a-zA-Z_]~', $block)) {
+            throw new Exception("Block name '{$block}' contents wrong chars");
+        }
     }
 }
