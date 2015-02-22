@@ -1,12 +1,14 @@
 Micro Templater
 ===============
 
-Simple and strong php templater
+Simple but powerful PHP template engine. <br>
+Just one file. <br>
+Have a look how it easy to use. <br>
 
 #### Examples
 
-##### Veriables
-###### Example # 1 Using the method assign
+##### Variables
+###### Example # 1 Using the method 'assign'
 
 ```php
 $html = '
