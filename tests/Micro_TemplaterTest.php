@@ -374,7 +374,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
                 '0'
             ),
             array(
-                'select#method',
+                'method',
                 array('a','b','c','d'),
                 '2'
             ),
@@ -451,81 +451,6 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
 
 
     /**
-     * @dataProvider providerSetAttr
-     * @param string $selector
-     * @param string $name
-     * @param string $value
-     * @throws Exception
-     */
-    public function testSetAttr($selector, $name, $value) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
-        $tpl->setAttr($selector, $name, $value);
-    }
-
-
-    /**
-     * @return array
-     */
-    public function providerSetAttr() {
-        return array(
-            array('#menu', 'style', 'color:#333'),
-            array('#content', 'id', 'content2'),
-            array('div', 'role', 'block'),
-        );
-    }
-
-
-    /**
-     * @dataProvider providerSetAppendAttr
-     * @param string $selector
-     * @param string $name
-     * @param string $value
-     * @throws Exception
-     */
-    public function testSetAppendAttr($selector, $name, $value) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
-        $tpl->setAttr($selector, $name, $value);
-    }
-
-
-    /**
-     * @return array
-     */
-    public function providerSetAppendAttr() {
-        return array(
-            array('#menu', 'style', ' color:#333'),
-            array('#content', 'id', 'content2 '),
-            array('div', 'role', 'block'),
-        );
-    }
-
-
-    /**
-     * @dataProvider providerSetPrependAttr
-     * @param string $selector
-     * @param string $name
-     * @param string $value
-     * @throws Exception
-     */
-    public function testSetPrependAttr($selector, $name, $value) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
-        $tpl->setAttr($selector, $name, $value);
-    }
-
-
-    /**
-     * @return array
-     */
-    public function providerSetPrependAttr() {
-        return array(
-            array('#menu', 'style', 'color:#333'),
-            array('#content', 'id', 'content2'),
-            array('div', 'role', 'block'),
-        );
-    }
-
-
-    /**
      * @dataProvider providerComplecs
      * @param string $menu
      */
@@ -545,18 +470,12 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
             $tpl->menu->assign('[NAME]',   $element['name']);
             $tpl->menu->assign('[TITLE]',  $element['title']);
 
-            if (isset($element['active']) && $element['active']) {
-                $tpl->menu->setAttr('li', 'class' , 'active');
-            } else {
-                $tpl->menu->setAttr('li', 'class' , '');
-            }
-
             $tpl->menu->reassign();
         }
 
         $tp_content = new Micro_Templater(__DIR__ . '/templates/tpl2.html');
         $tp_content->fillDropDown(
-            'select.sel',
+            'sel',
             array(
                 '25'  => '25',
                 '50'  => '50',

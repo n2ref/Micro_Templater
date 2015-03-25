@@ -30,7 +30,6 @@ class Micro_Templater {
      * @throws Exception
      */
     public function __isset($block) {
-        $this->checkBlockName($block);
         $begin_pos = strpos($this->html, "<!-- BEGIN {$block} -->");
         $end_pos   = strrpos($this->html, "<!-- END {$block} -->");
 
@@ -106,21 +105,17 @@ class Micro_Templater {
      * @param string $block
      */
     public function touchBlock($block) {
-        $this->checkBlockName($block);
         $this->blocks[$block]['TOUCHED'] = true;
     }
 
 
     /**
      * Get html block
-     * @param string $block
+     * @param  string      $block
      * @return string|bool
      * @throws Exception
      */
     public function getBlock($block) {
-
-        $this->checkBlockName($block);
-
         $begin_pos = strpos($this->html, "<!-- BEGIN {$block} -->")  + strlen("<!-- BEGIN {$block} -->");
         $end_pos   = strrpos($this->html, "<!-- END {$block} -->");
 
@@ -189,347 +184,38 @@ class Micro_Templater {
 
     /**
      * Fill SELECT items on page
-     * @param string       $selector
+     * @param string       $id
      * @param array        $options
      * @param string|array $selected
      */
-    public function fillDropDown($selector, array $options, $selected = '') {
+    public function fillDropDown($id, array $options, $selected = null) {
 
         if ($this->reassign) $this->startReassign();
-        $doc  = new DOMDocument();
-        $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/s', '=[$1];',        $this->html);
-        $html = preg_replace('~<!DOCTYPE([^>]*)>~s',        '!DOCTYPE[$1];', $html);
-        $doc->loadXML('<root>' . $html . '</root>');
-        $elements = $this->getDOMElements($selector, $doc);
-
-        foreach ($elements as $key => $element) {
-            if ($element instanceof DOMElement) {
-                foreach ($options as $value => $option) {
-                    if (is_array($option)) {
-                        $optgroup = $doc->createElement("optgroup");
-                        $optgroup->setAttribute('label', $value);
-
-                        foreach ($option as $val => $opt) {
-                            $node = $doc->createElement("option", $opt);
-                            $node->setAttribute('value', $val);
-                            if ($selected && ((is_array($selected) && in_array((string)$val, $selected)) || (string)$val === (string)$selected)) {
-                                $node->setAttribute('selected', 'selected');
-                            }
-                            $optgroup->appendChild($node);
-                        }
-                        $element->appendChild($optgroup);
-
-                    } else {
-                        $node = $doc->createElement("option", $option);
-                        $node->setAttribute('value', $value);
-                        if ($selected && ((is_array($selected) && in_array((string)$value, $selected)) || (string)$value === (string)$selected)) {
-                            $node->setAttribute('selected', 'selected');
-                        }
-                        $element->appendChild($node);
-                    }
+        $html = "";
+        foreach ($options as $value => $option) {
+            if (is_array($option)) {
+                $html .= "<optgroup label=\"{$value}\">";
+                foreach ($option as $val => $opt) {
+                    $sel = $selected !== null && ((is_array($selected) && in_array((string)$val, $selected)) || (string)$val === (string)$selected)
+                        ? 'selected="selected" '
+                        : '';
+                    $html .= "<option {$sel}value=\"{$val}\">{$opt}</option>";
                 }
+                $html .= '</optgroup>';
+
+            } else {
+                $sel = $selected !== null && ((is_array($selected) && in_array((string)$value, $selected)) || (string)$value === (string)$selected)
+                    ? 'selected="selected" '
+                    : '';
+                $html .= "<option {$sel}value=\"{$value}\">{$option}</option>";
             }
         }
-        $xpath     = new DOMXpath($doc);
-        $node_list = $xpath->evaluate('descendant-or-self::root');
-        $this->html = $doc->saveXML($node_list->item(0), LIBXML_NOEMPTYTAG);
-        $this->html = substr($this->html, 6, -7);
-        $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/s', '&$1;',         $this->html);
-        $this->html = preg_replace('/!DOCTYPE\[(.*?)\];/s',           '<!DOCTYPE$1>', $this->html);
-    }
-
-
-    /**
-     * Setting the value of the attribute
-     * @param  string     $selector
-     * @param  string     $name
-     * @param  string     $value
-     * @throws Exception
-     * @return self
-     */
-    public function setAttr($selector, $name, $value) {
-        if (is_string($selector) && is_string($name) && is_string($value)) {
-            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/s', '=[$1];',        $this->html);
-            $html = preg_replace('~<!DOCTYPE([^>]*)>~s',        '!DOCTYPE[$1];', $html);
-            $doc  = new DOMDocument();
-            $doc->loadXML('<root>' . $html . '</root>');
-            $elements = $this->getDOMElements($selector, $doc);
-
-            foreach ($elements as $key => $element) {
-                if ($element instanceof DOMElement) {
-                    $element->setAttribute($name, $value);
-                }
-            }
-
-            $xpath     = new DOMXpath($doc);
-            $node_list = $xpath->evaluate('descendant-or-self::root');
-            $this->html = $doc->saveXML($node_list->item(0), LIBXML_NOEMPTYTAG);
-            $this->html = substr($this->html, 6, -7);
-            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/s', '&$1;',         $this->html);
-            $this->html = preg_replace('/!DOCTYPE\[(.*?)\];/s',           '<!DOCTYPE$1>', $this->html);
-        } else {
-            throw new Exception("Wrong type for input parameters 'selector', 'name' or 'value'. Need string");
+        if ($html) {
+            $id = preg_quote($id);
+            $reg = "~(<select.*?id\s*=\s*[\"']{$id}[\"'][^>]*>).*?(</select>)~si";
+            $this->html = preg_replace($reg, "$1[[$id]]$2", $this->html);
+            $this->assign("[[$id]]", $html, true);
         }
-        return $this;
-    }
-
-
-    /**
-     * Setting the value at the beginning of the attribute
-     * @param  string     $selector
-     * @param  string     $name
-     * @param  string     $value
-     * @throws Exception
-     * @return self
-     */
-    public function setPrependAttr($selector, $name, $value) {
-        if (is_string($selector) && is_string($name) && is_string($value)) {
-            $doc  = new DOMDocument();
-            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/s', '=[$1];',        $this->html);
-            $html = preg_replace('~<!DOCTYPE([^>]*)>~s',        '!DOCTYPE[$1];', $html);
-            $doc->loadXML('<root>' . $html . '</root>');
-            $elements = $this->getDOMElements($selector, $doc);
-
-            foreach ($elements as $key => $element) {
-                if ($element instanceof DOMElement) {
-                    if ($element->hasAttribute($name)) {
-                        $value .= $element->getAttribute($name);
-                    }
-                    $element->setAttribute($name, $value);
-                }
-            }
-
-            $xpath     = new DOMXpath($doc);
-            $node_list = $xpath->evaluate('descendant-or-self::root');
-            $this->html = $doc->saveXML($node_list->item(0), LIBXML_NOEMPTYTAG);
-            $this->html = substr($this->html, 6, -7);
-            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/s', '&$1;',         $this->html);
-            $this->html = preg_replace('/!DOCTYPE\[(.*?)\];/s',           '<!DOCTYPE$1>', $this->html);
-        } else {
-            throw new Exception("Wrong type for input parameters 'selector', 'name' or 'value'. Need string");
-        }
-        return $this;
-    }
-
-
-    /**
-     * Setting the value of the attribute at the end
-     * @param  string     $selector
-     * @param  string     $name
-     * @param  string     $value
-     * @throws Exception
-     * @return self
-     */
-    public function setAppendAttr($selector, $name, $value) {
-        if (is_string($selector) && is_string($name) && is_string($value)) {
-            $doc  = new DOMDocument();
-            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/s', '=[$1];',        $this->html);
-            $html = preg_replace('~<!DOCTYPE([^>]*)>~s',        '!DOCTYPE[$1];', $html);
-            $doc->loadXML('<root>' . $html . '</root>');
-            $elements = $this->getDOMElements($selector, $doc);
-
-            foreach ($elements as $key => $element) {
-                if ($element instanceof DOMElement) {
-                    if ($element->hasAttribute($name)) {
-                        $old   = $element->getAttribute($name);
-                        $value = $old . $value;
-                    }
-                    $element->setAttribute($name, $value);
-                }
-            }
-
-            $xpath     = new DOMXpath($doc);
-            $node_list = $xpath->evaluate('descendant-or-self::root');
-            $this->html = $doc->saveXML($node_list->item(0), LIBXML_NOEMPTYTAG);
-            $this->html = substr($this->html, 6, -7);
-            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/s', '&$1;',         $this->html);
-            $this->html = preg_replace('/!DOCTYPE\[(.*?)\];/s',           '<!DOCTYPE$1>', $this->html);
-        } else {
-            throw new Exception("Wrong type for input parameters 'selector', 'name' or 'value'. Need string");
-        }
-        return $this;
-    }
-
-
-    /**
-     * Setting attributes
-     * @param  string     $selector
-     * @param  array      $attributes
-     * @throws Exception
-     * @return self
-     */
-    public function setAttributes($selector, array $attributes) {
-        if (is_string($selector) && is_array($attributes)) {
-            $doc  = new DOMDocument();
-            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/s', '=[$1];',        $this->html);
-            $html = preg_replace('~<!DOCTYPE([^>]*)>~s',        '!DOCTYPE[$1];', $html);
-            $doc->loadXML('<root>' . $html . '</root>');
-            $elements = $this->getDOMElements($selector, $doc);
-
-            foreach ($elements as $key => $element) {
-                if ($element instanceof DOMElement) {
-                    foreach ($attributes as $name => $value) {
-                        $element->setAttribute($name, $value);
-                    }
-                }
-            }
-
-            $xpath     = new DOMXpath($doc);
-            $node_list = $xpath->evaluate('descendant-or-self::root');
-            $this->html = $doc->saveXML($node_list->item(0), LIBXML_NOEMPTYTAG);
-            $this->html = substr($this->html, 6, -7);
-            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/s', '&$1;',         $this->html);
-            $this->html = preg_replace('/!DOCTYPE\[(.*?)\];/s',           '<!DOCTYPE$1>', $this->html);
-        } else {
-            throw new Exception("Wrong type for input parameters 'selector' or 'attributes'. Need string and array");
-        }
-        return $this;
-    }
-
-
-    /**
-     * Setting the value at the beginning of the attribute
-     * @param  string     $selector
-     * @param  array      $attributes
-     * @throws Exception
-     * @return self
-     */
-    public function setPrependAttributes($selector, array $attributes) {
-        if (is_string($selector) && is_array($attributes)) {
-            $doc  = new DOMDocument();
-            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/s', '=[$1];',        $this->html);
-            $html = preg_replace('~<!DOCTYPE([^>]*)>~s',        '!DOCTYPE[$1];', $html);
-            $doc->loadXML('<root>' . $html . '</root>');
-            $elements = $this->getDOMElements($selector, $doc);
-
-            foreach ($elements as $key => $element) {
-                if ($element instanceof DOMElement) {
-                    foreach ($attributes as $name => $value) {
-                        if ($element->hasAttribute($name)) {
-                            $value .= $element->getAttribute($name);
-                        }
-                        $element->setAttribute($name, $value);
-                    }
-                }
-            }
-
-            $xpath     = new DOMXpath($doc);
-            $node_list = $xpath->evaluate('descendant-or-self::root');
-            $this->html = $doc->saveXML($node_list->item(0), LIBXML_NOEMPTYTAG);
-            $this->html = substr($this->html, 6, -7);
-            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/s', '&$1;',         $this->html);
-            $this->html = preg_replace('/!DOCTYPE\[(.*?)\];/s',           '<!DOCTYPE$1>', $this->html);
-        } else {
-            throw new Exception("Wrong type for input parameters 'selector' or 'attributes'. Need string and array");
-        }
-        return $this;
-    }
-
-
-    /**
-     * Setting the value of the attribute at the end
-     * @param  string     $selector
-     * @param  array      $attributes
-     * @throws Exception
-     * @return self
-     */
-    public function setAppendAttributes($selector, array $attributes) {
-        if (is_string($selector) && is_array($attributes)) {
-            $doc  = new DOMDocument();
-            $html = preg_replace('/&([a-zA-Z][a-zA-Z0-9]+);/s', '=[$1];',        $this->html);
-            $html = preg_replace('~<!DOCTYPE([^>]*)>~s',        '!DOCTYPE[$1];', $html);
-            $doc->loadXML('<root>' . $html . '</root>');
-            $elements = $this->getDOMElements($selector, $doc);
-            foreach ($elements as $key => $element) {
-                if ($element instanceof DOMElement) {
-                    foreach ($attributes as $name => $value) {
-                        if ($element->hasAttribute($name)) {
-                            $old   = $element->getAttribute($name);
-                            $value = $old . $value;
-                        }
-                        $element->setAttribute($name, $value);
-                    }
-                }
-            }
-            $xpath     = new DOMXpath($doc);
-            $node_list = $xpath->evaluate('descendant-or-self::root');
-            $this->html = $doc->saveXML($node_list->item(0), LIBXML_NOEMPTYTAG);
-            $this->html = substr($this->html, 6, -7);
-            $this->html = preg_replace('/=\[([a-zA-Z][a-zA-Z0-9]+)\];/s', '&$1;',         $this->html);
-            $this->html = preg_replace('/!DOCTYPE\[(.*?)\];/s',           '<!DOCTYPE$1>', $this->html);
-        } else {
-            throw new Exception("Wrong type for input parameters 'selector' or 'attributes'. Need string and array");
-        }
-        return $this;
-    }
-
-
-    /**
-     * Get an array of elements
-     * @param  string       $selector
-     * @param  DOMDocument $doc
-     * @return array
-     */
-    protected function getDOMElements($selector, DOMDocument $doc) {
-        $selector  = preg_replace('/\s*([>~+,])\s*/', '$1', $selector);
-        $selectors = preg_split("/\s+(?![^\[]+\])/", $selector);
-        foreach ($selectors as $key => $selector) {
-            // ,
-            $selectors[$key] = preg_replace('/\s*,\s*/', '|descendant-or-self::', $selector);
-            // :button, :submit, etc
-            $selectors[$key] = preg_replace('/:(button|submit|file|checkbox|radio|image|reset|text|password)/', 'input[@type="\1"]', $selectors[$key]);
-            // [id]
-            $selectors[$key] = preg_replace('/\[(\w+)\]/', '*[@\1]', $selectors[$key]);
-            // foo[id=foo]
-            $selectors[$key] = preg_replace('/\[(\w+)=[\'"]?(.*?)[\'"]?\]/', '[@\1="\2"]', $selectors[$key]);
-            // [id=foo]
-            $selectors[$key] = preg_replace('/^\[/', '*[', $selectors[$key]);
-            // div#foo
-            $selectors[$key] = preg_replace('/([\w\-]+)\#([\w\-]+)/', '\1[@id="\2"]', $selectors[$key]);
-            // #foo
-            $selectors[$key] = preg_replace('/\#([\w\-]+)/', '*[@id="\1"]', $selectors[$key]);
-            // div.foo
-            $selectors[$key] = preg_replace('/([\w\-]+)\.([\w\-]+)/', '\1[contains(concat(" ",@class," ")," \2 ")]', $selectors[$key]);
-            // .foo
-            $selectors[$key] = preg_replace('/\.([\w\-]+)/', '*[contains(concat(" ",@class," ")," \1 ")]', $selectors[$key]);
-            // div:first-child
-            $selectors[$key] = preg_replace('/([\w\-]+):first-child/', '*/\1[position()=1]', $selectors[$key]);
-            // div:last-child
-            $selectors[$key] = preg_replace('/([\w\-]+):last-child/', '*/\1[position()=last()]', $selectors[$key]);
-            // :first-child
-            $selectors[$key] = str_replace(':first-child', '*/*[position()=1]', $selectors[$key]);
-            // :last-child
-            $selectors[$key] = str_replace(':last-child', '*/*[position()=last()]', $selectors[$key]);
-            // :nth-last-child
-            $selectors[$key] = preg_replace('/:nth-last-child\((\d+)\)/', '[position()=(last() - (\1 - 1))]', $selectors[$key]);
-            // div:nth-child
-            $selectors[$key] = preg_replace('/([\w\-]+):nth-child\((\d+)\)/', '*/*[position()=\2 and self::\1]', $selectors[$key]);
-            // :nth-child
-            $selectors[$key] = preg_replace('/:nth-child\((\d+)\)/', '*/*[position()=\1]', $selectors[$key]);
-            // :contains(Foo)
-            $selectors[$key] = preg_replace('/([\w\-]+):contains\((.*?)\)/', '\1[contains(string(.),"\2")]', $selectors[$key]);
-            // >
-            $selectors[$key] = preg_replace('/\s*>\s*/', '/', $selectors[$key]);
-            // ~
-            $selectors[$key] = preg_replace('/\s*~\s*/', '/following-sibling::', $selectors[$key]);
-            // +
-            $selectors[$key] = preg_replace('/\s*\+\s*([\w\-]+)/', '/following-sibling::\1[position()=1]', $selectors[$key]);
-            $selectors[$key] = str_replace(']*', ']', $selectors[$key]);
-            $selectors[$key] = str_replace(']/*', ']', $selectors[$key]);
-        }
-        $selector = implode('/descendant::', $selectors);
-        $selector = 'descendant-or-self::' . $selector;
-        $xpath    = new DOMXpath($doc);
-        $elements = $xpath->evaluate($selector);
-        $array = array();
-        if ($elements instanceof DOMNodeList && $elements->length) {
-            for ($i = 0, $length = $elements->length; $i < $length; ++$i) {
-                if ($elements->item($i)->nodeType == XML_ELEMENT_NODE) {
-                    $array[] = $elements->item($i);
-                }
-            }
-        }
-        return $array;
     }
 
 
@@ -554,27 +240,5 @@ class Micro_Templater {
         $this->loop = $this->render();
         $this->clear();
         $this->reassign = false;
-    }
-
-
-    /**
-     * Check block name
-     * @param $block
-     * @return void
-     * @throws Exception
-     */
-    protected function checkBlockName($block) {
-
-        if ($block === '') {
-            throw new Exception("Block name '{$block}' must be a non-empty string");
-        }
-
-        if (preg_match('~^\d~', $block[0])) {
-            throw new Exception("Block name '{$block}' must not start with a number");
-        }
-
-        if (preg_match('~[^0-9a-zA-Z_]~', $block)) {
-            throw new Exception("Block name '{$block}' contents wrong chars");
-        }
     }
 }

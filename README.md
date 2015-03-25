@@ -109,7 +109,7 @@ $menu = array(
 $tpl = new Micro_Templater();
 $tpl->setTemplate($html);
  
-foreach ($menu as $page_name=>$title) {
+foreach ($menu as $page_name => $title) {
     $tpl->menu->assign('[URL]',  '?view=' . $page_name);
     $tpl->menu->assign('[TITLE]', $title);
     $tpl->menu->reassign();
@@ -138,7 +138,7 @@ $html = '
     <form>
         <div class="form-group">
             <label for="year">Year</label>
-            <select id="year" name="year" class="form-control"></select>
+            <select id="year" class="form-control"></select>
         </div>
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
@@ -154,7 +154,7 @@ $years = array(
     2010 => '2010',
     2015 => '2015'
 );
-$tpl->fillDropDown('select#year', $years, 2015);
+$tpl->fillDropDown('year', $years, 2015);
 
 
 echo $tpl->render();
@@ -166,54 +166,12 @@ Result will look like:
     <form>
         <div class="form-group">
             <label for="year">Year</label>
-            <select id="year" name="year" class="form-control">
+            <select id="year" class="form-control">
                 <option value="2000">2000</option>
                 <option value="2005">2005</option>
                 <option value="2010">2010</option>
                 <option value="2015" selected="selected">2015</option>
             </select>
-        </div>
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
-```
-
-
-##### Attributes
-
-###### Example # 1 
-```php
-$html = '
-    <h1>Title</h1>
-    <form>
-        <div class="form-group">
-            <label for="day">Day</label>
-            <input id="day" name="day" class="form-control"/>
-        </div>
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
-';
-
-$tpl = new Micro_Templater();
-$tpl->setTemplate($html);
-
-$tpl->setAttr('input#day', 'required', 'required');
-$tpl->setAppendAttr('input#day', 'class', ' xxx');
-$tpl->setAttribs('form', array(
-    'action'   => "index.php",
-    'method'   => "get",
-    'onsubmit' => "return this.day.value != ''",
-));
-
-echo $tpl->render();
-```
-Result will look like:
-
-```html
-    <h1>Title</h1>
-    <form action="index.php" method="get" onsubmit="return this.day.value != ''">
-        <div class="form-group">
-            <label for="day">Day</label>
-            <input id="day" name="day" class="form-control xxx" required="required"/>
         </div>
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
