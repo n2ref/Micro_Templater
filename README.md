@@ -20,7 +20,7 @@ $html = '
     </ul>
 ';
  
-$tpl = new Micro_Templater();
+$tpl = new Mtpl();
 $tpl->setTemplate($html);
  
 $tpl->assign('var1',   'foo');
@@ -50,7 +50,7 @@ $html = '
     <!-- END error -->
 ';
  
-$tpl = new Micro_Templater();
+$tpl = new Mtpl();
 $tpl->setTemplate($html);
  
 $tpl->touchBlock('error');
@@ -73,7 +73,7 @@ $html = '
     <!-- END error -->
 ';
  
-$tpl = new Micro_Templater();
+$tpl = new Mtpl();
 $tpl->setTemplate($html);
  
 $tpl->error->assign('[message]', 'Exemple 2: error message!');
@@ -106,7 +106,7 @@ $menu = array(
     'help'    => 'Help'
 );
  
-$tpl = new Micro_Templater();
+$tpl = new Mtpl();
 $tpl->setTemplate($html);
  
 foreach ($menu as $page_name => $title) {
@@ -144,7 +144,7 @@ $html = '
     </form>
 ';
 
-$tpl = new Micro_Templater();
+$tpl = new Mtpl();
 $tpl->setTemplate($html);
 
 

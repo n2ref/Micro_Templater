@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Class Micro_Templater
- * @see https://github.com/shinji00/Micro_Templater
+ * Class Mtpl
+ * @see https://github.com/shabuninil/Mtpl
  */
-class Micro_Templater {
+class Mtpl {
 
     protected $blocks   = array();
     protected $vars     = array();
@@ -40,7 +40,7 @@ class Micro_Templater {
     /**
      * Nested blocks will be stored inside $_p
      * @param  string               $block
-     * @return Micro_Templater|null
+     * @return Mtpl|null
      * @throws Exception
      */
     public function __get($block) {
@@ -49,7 +49,7 @@ class Micro_Templater {
         $this->touchBlock($block);
 
         if ( ! array_key_exists($block, $this->_p)) {
-            $tpl = new Micro_Templater();
+            $tpl = new Mtpl();
             $tpl->setTemplate($this->getBlock($block));
             $this->_p[$block] = $tpl;
         }
@@ -105,6 +105,7 @@ class Micro_Templater {
      * @param string $block
      */
     public function touchBlock($block) {
+        if ($this->reassign) $this->startReassign();
         $this->blocks[$block]['TOUCHED'] = true;
     }
 
@@ -150,7 +151,7 @@ class Micro_Templater {
                 $block_end   = "<!-- END {$block} -->";
 
                 $begin_pos = strpos($html, $block_begin);
-                $end_pos   = strrpos($html, $block_end);
+                $end_pos   = strpos($html, $block_end, $begin_pos);
 
                 if ($begin_pos !== false && $end_pos !== false && $end_pos >= $begin_pos) {
                     $after_html  = substr($html, 0, $begin_pos);
@@ -159,7 +160,7 @@ class Micro_Templater {
 
                     if (isset($data['TOUCHED']) && $data['TOUCHED']) {
                         $block_tpl = array_key_exists($block, $this->_p) ? $this->_p[$block] : null;
-                        if ($block_tpl instanceof Micro_Templater) {
+                        if ($block_tpl instanceof Mtpl) {
                             $parsed = $block_tpl->render();
                             $html = $after_html . $parsed . $before_html;
                         } else {
@@ -204,7 +205,7 @@ class Micro_Templater {
                 $html .= '</optgroup>';
 
             } else {
-                $sel = $selected !== null && ((is_array($selected) && in_array((string)$value, $selected)) || (string)$value === (string)$selected)
+                $sel = $selected !== null && ((is_array($selected) && in_array((string)$value, $selected)) || (is_scalar($selected) && (string)$value === (string)$selected))
                     ? 'selected="selected" '
                     : '';
                 $html .= "<option {$sel}value=\"{$value}\">{$option}</option>";
@@ -223,10 +224,11 @@ class Micro_Templater {
      * Clear vars & blocks
      */
     protected function clear() {
-        $this->blocks = array();
-        $this->vars   = array();
+        $this->blocks   = array();
+        $this->vars     = array();
+        $this->reassign = false;
         foreach ($this->_p as $obj) {
-            if ($obj instanceof Micro_Templater) {
+            if ($obj instanceof Mtpl) {
                 $obj->clear();
             }
         }
@@ -239,6 +241,5 @@ class Micro_Templater {
     protected function startReassign() {
         $this->loop = $this->render();
         $this->clear();
-        $this->reassign = false;
     }
 }

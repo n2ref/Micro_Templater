@@ -1,12 +1,12 @@
 <?php
 
-require_once __DIR__ . '/../Micro_Templater.php';
+require_once __DIR__ . '/../Mtpl.php';
 
 
 /**
- * Class Micro_TemplaterTest
+ * Class MtplTest
  */
-class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
+class MtplTest extends PHPUnit_Framework_TestCase {
 
 
     /**
@@ -14,9 +14,9 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @dataProvider providerConstructor
      */
     public function testConstructor($filename) {
-        $tpl = new Micro_Templater($filename);
+        $tpl = new Mtpl($filename);
 
-        if ( ! ($tpl instanceof Micro_Templater)) {
+        if ( ! ($tpl instanceof Mtpl)) {
             $this->fail('Error in constructor');
         }
     }
@@ -42,7 +42,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @expectedException Exception
      */
     public function testErrorConstructor($filename) {
-        new Micro_Templater($filename);
+        new Mtpl($filename);
     }
 
 
@@ -63,7 +63,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @param $filename
      */
     public function testLoadTemplate($filename) {
-        $tpl = new Micro_Templater();
+        $tpl = new Mtpl();
         $tpl->loadTemplate($filename);
     }
 
@@ -86,7 +86,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @expectedException Exception
      */
     public function testErrorLoadTemplate($filename) {
-        $tpl = new Micro_Templater();
+        $tpl = new Mtpl();
         $tpl->loadTemplate($filename);
     }
 
@@ -110,7 +110,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @param string $template
      */
     public function testSetTemplate($template) {
-        $tpl = new Micro_Templater();
+        $tpl = new Mtpl();
         $tpl->setTemplate($template);
     }
 
@@ -133,7 +133,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @param string $value
      */
     public function testAssign($var, $value) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl1.html');
         $tpl->assign($var, $value);
     }
 
@@ -158,10 +158,10 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @param string $block
      */
     public function test__get($block) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl1.html');
         $tpl_block = $tpl->$block;
 
-        if ( ! ($tpl_block instanceof Micro_Templater)) {
+        if ( ! ($tpl_block instanceof Mtpl)) {
             $this->fail("Correct block '{$block}' not found");
         }
     }
@@ -187,7 +187,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @expectedException Exception
      */
     public function testError__get($block) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl1.html');
         $tpl->$block;
     }
 
@@ -213,7 +213,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @param string $block
      */
     public function test__isset($block) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl1.html');
         if ( ! isset($tpl->$block)) {
             $this->fail("Correct block '{$block}' not found");
         }
@@ -239,7 +239,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @throws Exception
      */
     public function testError__isset($block) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl1.html');
 
         if (isset($tpl->$block)) {
             $this->fail("Found incorrect block '{$block}'");
@@ -269,7 +269,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      *
      */
     public function testReassign() {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl1.html');
         $tpl->reassign();
     }
 
@@ -278,7 +278,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @dataProvider providerTouchBlock
      */
     public function testTouchBlock($block) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl1.html');
         $tpl->touchBlock($block);
     }
 
@@ -300,7 +300,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @param string $block
      */
     public function testGetBlock($block) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl1.html');
         $html = $tpl->getBlock($block);
         if ( ! is_string($html)) {
             $this->fail("Block '{$block}' empty");
@@ -327,7 +327,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @expectedException Exception
      */
     public function testErrorGetBlock($block) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl1.html');
         $tpl->getBlock($block);
     }
 
@@ -353,7 +353,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @throws Exception
      */
     public function testFillDropDown($selector, $options, $selected) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl2.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl2.html');
         $tpl->fillDropDown($selector, $options, $selected);
     }
 
@@ -430,7 +430,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @param string $filename
      */
     public function testRender($filename) {
-        $tpl = new Micro_Templater($filename);
+        $tpl = new Mtpl($filename);
         $result = $tpl->render();
         if ( ! is_string($result)) {
             $this->fail("Method 'render' return not string");
@@ -455,7 +455,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
      * @param string $menu
      */
     public function testComplecs($menu) {
-        $tpl = new Micro_Templater(__DIR__ . '/templates/tpl1.html');
+        $tpl = new Mtpl(__DIR__ . '/templates/tpl1.html');
 
         $tpl->assign('[TITLE]', 'title');
 
@@ -473,7 +473,7 @@ class Micro_TemplaterTest extends PHPUnit_Framework_TestCase {
             $tpl->menu->reassign();
         }
 
-        $tp_content = new Micro_Templater(__DIR__ . '/templates/tpl2.html');
+        $tp_content = new Mtpl(__DIR__ . '/templates/tpl2.html');
         $tp_content->fillDropDown(
             'sel',
             array(
